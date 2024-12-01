@@ -9,9 +9,7 @@ function resizeCanvas() {
 
 resizeCanvas();
 window.addEventListener('resize', () => {
-    canv.width = window.innerWidth;
-    canv.height = window.innerHeight;
-    
+    resizeCanvas();
     player1y = canv.height / 2 - paddleH / 2;
     player2x = canv.width - 192 - paddleW;
     player2y = canv.height / 2 - paddleH / 2;
@@ -20,24 +18,25 @@ window.addEventListener('resize', () => {
 });
 
 // Wymiary paletek i piłki
-const paddleW = 20; // Szerokość paletek
-const paddleH = 150; // Wysokość paletek
-const ballSize = 30; // Wielkość piłki
+const paddleW = 20;
+const paddleH = 150;
+const ballSize = 30;
 
 // Pozycje i prędkość paletek
-let player1x = 192; // Pozycja X gracza pierwszego
-let player1y = canv.height / 2 - paddleH / 2; // Pozycja Y gracza pierwszego
-let player2x = canv.width - 192 - paddleW; // Pozycja X gracza drugiego
-let player2y = canv.height / 2 - paddleH / 2; // Pozycja Y gracza drugiego
-const paddleSpeed = 6;
+let player1x = 192;
+let player1y = canv.height / 2 - paddleH / 2;
+let player2x = canv.width - 192 - paddleW;
+let player2y = canv.height / 2 - paddleH / 2;
+const paddleSpeed = 5;
 
 // Pozycja i prędkość piłki
 let ballx = canv.width / 2 - ballSize / 2;
 let bally = canv.height / 2 - ballSize / 2;
-let ballSpeedx = 2; // Prędkość piłki w osi X
-let ballSpeedy = 1.5; // Prędkość piłki w osi Y
-const acceleration = 1.05; // Zwiększenie prędkości piłki
-const maxSpeed = 10; // Maksymalna prędkość piłki
+let ballSpeedx = 2;
+let ballSpeedy = 1.5;
+const initialBallSpeedX = 2;
+const initialBallSpeedY = 1.5;
+const maxSpeed = 10;
 
 // Klawisze
 const keys = {
@@ -48,32 +47,27 @@ const keys = {
 };
 
 // Wynik graczy
-let player1Score = 0; // Punkty gracza pierwszego
-let player2Score = 0; // Punkty gracza drugiego
-const winningScore = 10; // Liczba punktów potrzebnych do wygranej
+let player1Score = 0;
+let player2Score = 0;
+const winningScore = 10;
 
-// Flaga wskazująca na skończenie gry
+// Flagi gry
 let gameOver = false;
-
-//  Menu główne
 let gameState = 'menu';
-let menuSelection = 0; // 0 - Multipayer 1 -Singleplayer
+let menuSelection = 0; // 0 - Multiplayer, 1 - Singleplayer
 
-//Dźwięki
-const hitSound =  new Audio('hitSound.mp3'); // Dźwięk odbicia piłki
-const scoreSound = new Audio('scoreSound.mp3'); // Dźwięk zdobycia punktu
-
+// Dźwięki
+const hitSound = new Audio('hitSound.mp3');
+const scoreSound = new Audio('scoreSound.mp3');
 
 // Funkcja rysująca stół
 function table() {
     const cw = canv.width;
     const ch = canv.height;
 
-    // Tło
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, cw, ch);
 
-    // Linia na środku
     ctx.fillStyle = 'gray';
     for (let linePosition = 10; linePosition < ch; linePosition += 30) {
         ctx.fillRect(cw / 2 - 5, linePosition, 6, 16);
@@ -85,82 +79,76 @@ function Ball() {
     ctx.fillStyle = 'white';
     ctx.fillRect(ballx, bally, ballSize, ballSize);
 
-    // Prędkość piłki
     ballx += ballSpeedx;
     bally += ballSpeedy;
 
-    // Kolizja z górną i dolną krawędzią canvas
+    // Odbicie piłki od ściany górnej i dolnej
     if (bally <= 0 || bally + ballSize >= canv.height) {
-        ballSpeedy = -ballSpeedy; // Zmiana kierunku ruchu
-
-        hitSound.play(); //Dźwięk odbicia się piłki od ściany
+        ballSpeedy = -ballSpeedy;
+        hitSound.play();
     }
 
-    // Kolizja z paletką po lewej stronie (gracz pierwszy)
+    // Odbicie piłki od lewej paletki
     if (
-        ballx <= player1x + paddleW && // Przód paletki
-        ballx + ballSize >= player1x && // Tył paletki
-        bally + ballSize >= player1y && // Dolna krawędź paletki
-        bally <= player1y + paddleH // Górna krawędź paletki
+        ballx <= player1x + paddleW &&
+        ballx + ballSize >= player1x &&
+        bally + ballSize >= player1y &&
+        bally <= player1y + paddleH
     ) {
-        ballSpeedx = -ballSpeedx * acceleration; // Odbicie piłki i jej przyspieszenie względem osi X
-        ballSpeedy *= acceleration // Przyspieszenie piłki względem osi Y
+        ballSpeedx = Math.min(maxSpeed, -ballSpeedx * 1.1);
+        ballSpeedy = Math.min(maxSpeed, ballSpeedy * 1.1);
 
-        //zmiana kątu odbicia piłki
         const paddleCenter = player1y + paddleH / 2;
         const impactPoint = bally + ballSize / 2 - paddleCenter;
-        ballSpeedy += impactPoint * 0.05; // Dodanie efektu
+        ballSpeedy += impactPoint * 0.05;
 
-        hitSound.play();// Dźwięk odicia się piłki od gracza
+        hitSound.play();
     }
 
-    // Kolizja z paletki po prawej stronie (gracz drugi)
+    // Odbicie piłki od prawej paletki
     if (
-        ballx + ballSize >= player2x && // Przód paletki
-        ballx <= player2x + paddleW && // Tył paletki
-        bally + ballSize >= player2y && // Dolna krawędź paletki
-        bally <= player2y + paddleH // Górna krawędź paletki
+        ballx + ballSize >= player2x &&
+        ballx <= player2x + paddleW &&
+        bally + ballSize >= player2y &&
+        bally <= player2y + paddleH
     ) {
-        ballSpeedx = -ballSpeedx * acceleration; // Odbicie piłki i jej przyspieszenie względem osi X
-        ballSpeedy *= acceleration // Przyspieszenie piłki względem osi Y
+        ballSpeedx = Math.min(maxSpeed, -ballSpeedx * 1.1);
+        ballSpeedy = Math.min(maxSpeed, ballSpeedy * 1.1);
 
-        // Zmiana kątu odbicia piłki
         const paddleCenter = player2y + paddleH / 2;
         const impactPoint = bally + ballSize / 2 - paddleCenter;
         ballSpeedy += impactPoint * 0.05;
-        
-        hitSound.play();// Dźwięk odicia się piłki od gracza
+
+        hitSound.play();
     }
-    // Ograniczenie prędkości piłki
-    if (Math.abs(ballSpeedx) > maxSpeed) {
-        ballSpeedx = Math.sign(ballSpeedx) * maxSpeed;
-    }
-    if (Math.abs(ballSpeedy) > maxSpeed) {
-        ballSpeedy = Math.sign(ballSpeedy) * maxSpeed;
-    }
-    // Przekroczenie prawej krawędzi (punkt dla gracza pierwszego)
+
+    // Przejście piłki poza ekran od prawej strony (punkt dla gracza pierwszego)
     if (ballx + ballSize >= canv.width) {
         player1Score++;
-        scoreSound.play(); //Dźwięk zdobycia punktu
-        checkWin(); // Sprawdzanie wygranej
+        scoreSound.play();
+        checkWin();
         resetBall();
     }
-    // Przekroczenie lewej krawędzi (punkt dla gracza drugiego)
+
+    // Przejście piłki poza ekran od lewej strony (punkt dla gracza drugiego)
     if (ballx + ballSize < 0) {
         player2Score++;
-        scoreSound.play(); //Dźwięk zdobycia punktu
-        checkWin(); // Sprawdzanie wygranej
+        scoreSound.play();
+        checkWin();
         resetBall();
     }
 }
 
-// Funkcja która będzie resetować położenie piłki gdy ta wyjdzie poza ekran
+// Funkcja resetująca piłkę
 function resetBall() {
     ballx = canv.width / 2 - ballSize / 2;
     bally = canv.height / 2 - ballSize / 2;
 
-    ballSpeedx = Math.random() > 0.5 ? 4 : -4;
-    ballSpeedy = Math.random() > 0.5 ? 3 : -3;
+    ballSpeedx = Math.random() > 0.5 ? initialBallSpeedX : -initialBallSpeedX;
+    ballSpeedy = Math.random() > 0.5 ? initialBallSpeedY : -initialBallSpeedY;
+
+    // Przywrócenie prędkości piłki po zdobyciu punktu lub po skończeniu
+    console.log(`Reset ball: speedx=${ballSpeedx}, speedy=${ballSpeedy}`); 
 }
 
 // Wczytywanie zdarzeń z klawiatury
@@ -194,61 +182,39 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-// Funkcja rysująca pierwszego gracza
+// Funkcja rysująca gracza pierwszego
 function Player1() {
-    // Zaprzestanie rysowania paletki gdy gra się skończy
-    if (gameOver) return;
-
-    // Ruch dla gracza pierwszego (W, S)
-    if (keys.w) {
-        player1y = Math.max(0, player1y - paddleSpeed);
-    }
-    if (keys.s) {
-        player1y = Math.min(canv.height - paddleH, player1y + paddleSpeed);
-    }
+    if (keys.w) player1y = Math.max(0, player1y - paddleSpeed);
+    if (keys.s) player1y = Math.min(canv.height - paddleH, player1y + paddleSpeed);
 
     ctx.fillStyle = 'white';
     ctx.fillRect(player1x, player1y, paddleW, paddleH);
 }
 
-// Funkcja rysująca drugiego gracza
+// Funkcja rysująca gracza drugiego
 function Player2() {
-    // Zaprzestanie rysowania paletki gdy gra się skończy
-    if (gameOver) return;
-
-    // Ruch dla gracza drugiego (strzałka w góre i dół)
-    if (keys.ArrowUp) {
-        player2y = Math.max(0, player2y - paddleSpeed);
-    }
-    if (keys.ArrowDown) {
-        player2y = Math.min(canv.height - paddleH, player2y + paddleSpeed);
-    }
+    if (keys.ArrowUp) player2y = Math.max(0, player2y - paddleSpeed);
+    if (keys.ArrowDown) player2y = Math.min(canv.height - paddleH, player2y + paddleSpeed);
 
     ctx.fillStyle = 'white';
     ctx.fillRect(player2x, player2y, paddleW, paddleH);
 }
 
-// Funkcja rysująca drugiego gracza (AI)
+// Funkcja rysująca gracza drugiego (AI)
 function Player2AI() {
-    // Zaprzestanie rysowania paletki gdy gra się skończy
-    if (gameOver) return;
-    
     const centerAI = player2y + paddleH / 2;
     const ballCenter = bally + ballSize / 2;
-    // Poruszanie się AI za piłką
     if (Math.abs(centerAI - ballCenter) > paddleSpeed) {
         player2y += ballCenter > centerAI ? paddleSpeed - 2 : -paddleSpeed + 2;
     }
-    player2y = Math.max(0, Math.min(canv.height - paddleH, player2y)); // Ograniczenie ruchu AI do obszaru gry
+    player2y = Math.max(0, Math.min(canv.height - paddleH, player2y));
 
-    // Rysowanie paletki AI
     ctx.fillStyle = 'white';
     ctx.fillRect(player2x, player2y, paddleW, paddleH);
 }
 
 // Funkcja rysująca menu główne
 function drawMenu() {
-    //Tło
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canv.width, canv.height);
 
@@ -258,8 +224,6 @@ function drawMenu() {
     ctx.fillText("PONG", canv.width / 2, canv.height / 4);
 
     ctx.font = '32px "Press Start 2P"';
-
-    // Podświetlenie opcji
     ctx.fillStyle = menuSelection === 0 ? 'yellow' : 'white';
     ctx.fillText("Multi player", canv.width / 2, canv.height / 2 - 50);
 
@@ -267,25 +231,16 @@ function drawMenu() {
     ctx.fillText("Single player", canv.width / 2, canv.height / 2 + 50);
 }
 
-
-// Funkcja rysująca punkty na ekranie
+// Funkcja rysująca wyniki obu graczy
 function drawScores() {
-
-    if (gameOver) return; // Skończenie rysowania wyników gdy gra się skończy
-
-
     ctx.fillStyle = 'white';
     ctx.font = '48px "Press Start 2P"';
     ctx.textAlign = 'center';
-
-    // Punkty gracza pierwszego (po lewej)
     ctx.fillText(player1Score, canv.width / 4, 100);
-
-    // Punkty gracza drugiego (po prawej)
     ctx.fillText(player2Score, (canv.width / 4) * 3, 100);
 }
 
-// Funkcja rysująca napis "WINNER" po tym jak jakiś gracz wygra
+// Funkcja rysująca napis o wygranej danego gracza
 function drawWinner(winner) {
     gameOver = true;
 
@@ -298,13 +253,13 @@ function drawWinner(winner) {
     ctx.fillText(`Player ${winner} Wins!`, canv.width / 2, canv.height / 2);
 
     setTimeout(() => {
-        gameState = 'menu';
-        gameOver = false;
         resetGame();
-    }, 5000); // Powrót do menu po 5 sekundach
+        gameState = 'menu'; 
+        gameOver = false;
+    }, 5000); // Przeniesienie użytkownika do menu głównego po pięciu sekundach
 }
 
-// Funkcja sprawdzająca, czy ktoś wygrał
+// Funkcja sprawdzająca czy któryś z graczy wygrał
 function checkWin() {
     if (player1Score === winningScore) {
         drawWinner(1);
@@ -313,13 +268,12 @@ function checkWin() {
     }
 }
 
-// Funkcja resetująca grę po wygranej
+// Funkcja resetująca grę
 function resetGame() {
     player1Score = 0;
     player2Score = 0;
     resetBall();
 }
-
 
 function gameLoop() {
     if (gameState === 'menu') {
@@ -332,16 +286,15 @@ function gameLoop() {
         table();
         Ball();
         Player1();
-
         if (gameState === 'pvp') {
             Player2();
         } else if (gameState === 'ai') {
             Player2AI();
         }
-
         drawScores();
     }
     requestAnimationFrame(gameLoop);
 }
 
 gameLoop();
+
