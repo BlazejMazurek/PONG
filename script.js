@@ -29,7 +29,7 @@ let player1x = 192; // Pozycja X gracza pierwszego
 let player1y = canv.height / 2 - paddleH / 2; // Pozycja Y gracza pierwszego
 let player2x = canv.width - 192 - paddleW; // Pozycja X gracza drugiego
 let player2y = canv.height / 2 - paddleH / 2; // Pozycja Y gracza drugiego
-const paddleSpeed = 6.5;
+const paddleSpeed = 6;
 
 // Pozycja i prędkość piłki
 let ballx = canv.width / 2 - ballSize / 2;
